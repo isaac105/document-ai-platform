@@ -1,0 +1,123 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Body,
+  Query,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { UploadDocumentCommand } from './commands/impl/upload-document.command';
+import { GetDocumentQuery } from './queries/impl/get-document.query';
+import { GetDocumentsQuery } from './queries/impl/get-documents.query';
+import { DocumentResponseDto } from './dto/document-response.dto';
+import { DocumentParserService } from './services/document-parser.service';
+import { ConfigService } from '@nestjs/config';
+
+@Controller('documents')
+export class DocumentsController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+    private readonly parserService: DocumentParserService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('team') team?: string,
+    @Body('uploadedBy') uploadedBy?: string,
+  ): Promise<DocumentResponseDto> {
+    // 파일 존재 여부 확인
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // 파일 크기 검증
+    const maxSize = this.configService.get<number>('MAX_FILE_SIZE') ?? 10485760;
+    if (file.size > maxSize) {
+      throw new BadRequestException(
+        `File size exceeds maximum allowed size of ${maxSize / 1024 / 1024}MB`,
+      );
+    }
+
+    // 파일 타입 검증
+    if (!this.parserService.isValidFileType(file.mimetype, file.originalname)) {
+      throw new BadRequestException(
+        'Invalid file type. Allowed types: PDF, DOC, DOCX, TXT',
+      );
+    }
+
+    // Command 실행
+    const document = await this.commandBus.execute(
+      new UploadDocumentCommand(file, team, uploadedBy),
+    );
+
+    return DocumentResponseDto.fromEntity(document);
+  }
+
+  @Get()
+  async getDocuments(
+    @Query('team') team?: string,
+    @Query('status') status?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<{
+    data: DocumentResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.queryBus.execute(
+      new GetDocumentsQuery(team, status, page, limit),
+    );
+
+    return {
+      data: result.documents.map(DocumentResponseDto.fromEntity),
+      total: result.total,
+      page,
+      limit,
+    };
+  }
+
+  @Get(':id')
+  async getDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<DocumentResponseDto> {
+    const document = await this.queryBus.execute(new GetDocumentQuery(id));
+
+    if (!document) {
+      throw new BadRequestException('Document not found');
+    }
+
+    return DocumentResponseDto.fromEntity(document);
+  }
+
+  @Get(':id/content')
+  async getDocumentContent(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ content: string }> {
+    const document = await this.queryBus.execute(new GetDocumentQuery(id));
+
+    if (!document) {
+      throw new BadRequestException('Document not found');
+    }
+
+    return { content: document.content };
+  }
+
+  @Get(':id/chunks')
+  async getDocumentChunks(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<any[]> {
+    // 추후 Query 구현
+    return [];
+  }
+}

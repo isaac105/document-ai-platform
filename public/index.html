@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>사내 문서 정리 AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #111;
+        background-color: #f5f5f7;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 32px 16px 80px;
+      }
+
+      .app {
+        width: min(960px, 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.75rem;
+      }
+
+      section {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.06);
+      }
+
+      .section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .section-title h2 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      label {
+        font-size: 0.9rem;
+        color: #475467;
+      }
+
+      input,
+      textarea,
+      button,
+      select {
+        font: inherit;
+      }
+
+      input[type='text'],
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        transition: border 0.2s ease;
+        box-sizing: border-box;
+      }
+
+      input[type='text']:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
+
+      button {
+        padding: 12px 18px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button.primary {
+        background: #111827;
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(17, 24, 39, 0.2);
+      }
+
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      button:not(:disabled):active {
+        transform: scale(0.98);
+      }
+
+      .muted {
+        font-size: 0.85rem;
+        color: #94a3b8;
+      }
+
+      .documents-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 260px;
+        overflow-y: auto;
+      }
+
+      .document-card {
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .document-card h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        font-size: 0.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .badge.status-completed {
+        color: #15803d;
+        background: #dcfce7;
+        border-color: #86efac;
+      }
+
+      .badge.status-processing {
+        color: #b45309;
+        background: #fef3c7;
+        border-color: #fcd34d;
+      }
+
+      .badge.status-pending {
+        color: #1d4ed8;
+        background: #dbeafe;
+        border-color: #93c5fd;
+      }
+
+      .answer-box {
+        min-height: 150px;
+        white-space: pre-line;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        margin-top: 16px;
+      }
+
+      .upload-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      @media (max-width: 600px) {
+        section {
+          padding: 20px;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>사내 문서 정리 AI</h1>
+        <p class="muted">
+          문서를 업로드하고 질문을 던져보세요. 벡터 기반 LLM이 답변을 생성합니다.
+        </p>
+      </header>
+
+      <section>
+        <div class="section-title">
+          <h2>1. 문서 업로드</h2>
+          <span class="muted">PDF / Word / TXT</span>
+        </div>
+        <form id="uploadForm">
+          <div class="upload-grid">
+            <label>
+              <span>문서 파일</span><br />
+              <input type="file" id="fileInput" required />
+            </label>
+            <label>
+              <span>팀명 (선택)</span><br />
+              <input type="text" id="teamInput" placeholder="예: platform" />
+            </label>
+            <label>
+              <span>업로더 (선택)</span><br />
+              <input type="text" id="uploadedByInput" placeholder="예: jina" />
+            </label>
+          </div>
+          <button class="primary" type="submit">문서 업로드</button>
+          <p id="uploadStatus" class="muted"></p>
+        </form>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <h2>2. 문서 목록</h2>
+          <button class="secondary" id="refreshDocs">새로고침</button>
+        </div>
+        <div id="documentsList" class="documents-list"></div>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <h2>3. 질문하기</h2>
+          <span class="muted">최신 완료 문서를 기반으로 답변</span>
+        </div>
+        <form id="questionForm">
+          <label>
+            <span>팀 필터 (선택)</span><br />
+            <input type="text" id="questionTeam" placeholder="예: platform" />
+          </label>
+          <label>
+            <span>질문</span><br />
+            <textarea id="questionInput" placeholder="예: 신규 온보딩 절차 요약해줘" required></textarea>
+          </label>
+          <button class="primary" type="submit">답변 요청</button>
+          <p id="questionStatus" class="muted"></p>
+        </form>
+        <div class="answer-box" id="answerBox">
+          아직 질문 기록이 없습니다. 문서를 업로드하고 질문을 던져보세요.
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const documentsList = document.getElementById('documentsList');
+      const refreshDocsBtn = document.getElementById('refreshDocs');
+      const uploadForm = document.getElementById('uploadForm');
+      const uploadStatus = document.getElementById('uploadStatus');
+      const questionForm = document.getElementById('questionForm');
+      const questionStatus = document.getElementById('questionStatus');
+      const answerBox = document.getElementById('answerBox');
+
+      async function fetchDocuments() {
+        documentsList.innerHTML = '<p class="muted">불러오는 중...</p>';
+        const res = await fetch('/documents');
+        const data = await res.json();
+        if (!data.data?.length) {
+          documentsList.innerHTML = '<p class="muted">아직 업로드된 문서가 없습니다.</p>';
+          return;
+        }
+        documentsList.innerHTML = data.data
+          .map(
+            (doc) => `
+          <div class="document-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3>${doc.originalName}</h3>
+              <span class="badge status-${doc.status}">${doc.status}</span>
+            </div>
+            <p class="muted">${(doc.fileSize / 1024).toFixed(1)} KB • ${new Date(doc.updatedAt).toLocaleString()}</p>
+            <p>${doc.summary ?? '요약 대기 중'}</p>
+          </div>
+        `,
+          )
+          .join('');
+      }
+
+      uploadForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        const team = document.getElementById('teamInput').value;
+        const uploadedBy = document.getElementById('uploadedByInput').value;
+        if (team) formData.append('team', team);
+        if (uploadedBy) formData.append('uploadedBy', uploadedBy);
+
+        uploadStatus.textContent = '업로드 중...';
+        try {
+          const res = await fetch('/documents/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          if (!res.ok) {
+            throw new Error(await res.text());
+          }
+          uploadStatus.textContent = '업로드 완료! 문서가 처리 대기 중입니다.';
+          uploadForm.reset();
+          fetchDocuments();
+        } catch (error) {
+          uploadStatus.textContent = `업로드 실패: ${error.message}`;
+        }
+      });
+
+      refreshDocsBtn.addEventListener('click', fetchDocuments);
+
+      questionForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = document.getElementById('questionInput').value.trim();
+        if (!question) return;
+        const team = document.getElementById('questionTeam').value.trim();
+
+        questionStatus.textContent = '답변 생성 중...';
+        answerBox.textContent = '';
+
+        try {
+          const res = await fetch('/qa/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, team: team || undefined }),
+          });
+          if (!res.ok) {
+            throw new Error(await res.text());
+          }
+          const data = await res.json();
+          answerBox.textContent = data.answer;
+          questionStatus.textContent =
+            data.sources?.length
+              ? `참고 문서 ${data.sources.length}건`
+              : '참고 가능한 문서가 없어 요약 범위가 제한되었습니다.';
+        } catch (error) {
+          answerBox.textContent = '답변 생성 실패: ' + error.message;
+          questionStatus.textContent = '';
+        }
+      });
+
+      fetchDocuments();
+    </script>
+  </body>
+</html>
+

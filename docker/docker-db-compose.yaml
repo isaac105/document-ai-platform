@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: dap-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password!
+      POSTGRES_DB: dap
+    ports:
+      - "5432:5432"
+    volumes:
+      - dap_db_data:/var/lib/postgresql/data
+    networks:
+      - dap
+
+networks:
+  dap:
+    external: true
+
+volumes:
+  dap_db_data:
