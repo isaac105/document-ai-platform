@@ -468,7 +468,13 @@
           answerBox.textContent = data.answer;
           questionStatus.textContent =
             data.sources?.length
-              ? `참고 문서 ${data.sources.length}건`
+              ? `참고 문서 ${data.sources.length}건 [` +
+                data.sources
+                  .map(
+                    (source) => `${source.originalName}`,
+                  )
+                  .join(', ')
+                + `]`
               : '참고 가능한 문서가 없어 요약 범위가 제한되었습니다.';
         } catch (error) {
           answerBox.textContent = '답변 생성 실패: ' + error.message;
