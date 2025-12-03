@@ -8,6 +8,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { QueriesModule } from './queries/queries.module';
 import { VectorstoreModule } from './vectorstore/vectorstore.module';
 import { LlmModule } from './llm/llm.module';
+import { FaviconController } from './common/controllers/favicon.controller';
 
 @Module({
   imports: [
@@ -32,5 +33,6 @@ import { LlmModule } from './llm/llm.module';
     VectorstoreModule,
     LlmModule,
   ],
+  controllers: [FaviconController],
 })
 export class AppModule {}
