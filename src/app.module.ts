@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import databaseConfig from './config/database.config';
 
 // 생성한 모듈들
@@ -18,6 +19,7 @@ import { FaviconController } from './common/controllers/favicon.controller';
       load: [databaseConfig],
       envFilePath: '.env',
     }),
+    EventEmitterModule.forRoot(),
 
     // TypeORM 설정
     TypeOrmModule.forRootAsync({

@@ -9,7 +9,10 @@ import {
   Body,
   Query,
   ParseUUIDPipe,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common';
+import { Buffer } from 'buffer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UploadDocumentCommand } from './commands/impl/upload-document.command';
@@ -18,6 +21,8 @@ import { GetDocumentsQuery } from './queries/impl/get-documents.query';
 import { DocumentResponseDto } from './dto/document-response.dto';
 import { DocumentParserService } from './services/document-parser.service';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Observable } from 'rxjs';
 
 @Controller('documents')
 export class DocumentsController {
@@ -26,6 +31,7 @@ export class DocumentsController {
     private readonly queryBus: QueryBus,
     private readonly parserService: DocumentParserService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Post('upload')
@@ -122,5 +128,15 @@ export class DocumentsController {
   ): Promise<any[]> {
     // 추후 Query 구현
     return [];
+  }
+
+  @Sse('events/stream')
+  documentsEvents(): Observable<MessageEvent> {
+    return new Observable((observer) => {
+      const handler = (payload: unknown) =>
+        observer.next({ data: payload } as MessageEvent);
+      this.eventEmitter.on('documents.updated', handler);
+      return () => this.eventEmitter.off('documents.updated', handler);
+    });
   }
 }

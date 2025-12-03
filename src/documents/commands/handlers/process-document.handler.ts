@@ -5,6 +5,7 @@ import { ProcessDocumentCommand } from '../impl/process-document.command';
 import { Document, DocumentStatus } from '../../entities/document.entity';
 import { DocumentChunk } from '../../entities/document-chunk.entity';
 import { Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DocumentProcessingService } from '../../services/document-processing.service';
 
 @CommandHandler(ProcessDocumentCommand)
@@ -19,10 +20,12 @@ export class ProcessDocumentHandler
     @InjectRepository(DocumentChunk)
     private chunkRepository: Repository<DocumentChunk>,
     private readonly processingService: DocumentProcessingService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(command: ProcessDocumentCommand): Promise<void> {
     const { documentId } = command;
+    let finalStatus: DocumentStatus = DocumentStatus.FAILED;
 
     try {
       // 문서 조회
@@ -80,6 +83,7 @@ export class ProcessDocumentHandler
       // 5. 완료 상태로 업데이트
       document.status = DocumentStatus.COMPLETED;
       await this.documentRepository.save(document);
+      finalStatus = DocumentStatus.COMPLETED;
 
       this.logger.log(`Document processing completed: ${document.filename}`);
     } catch (error) {
@@ -91,6 +95,12 @@ export class ProcessDocumentHandler
       // 실패 상태로 업데이트
       await this.documentRepository.update(documentId, {
         status: DocumentStatus.FAILED,
+      });
+      finalStatus = DocumentStatus.FAILED;
+    } finally {
+      this.eventEmitter.emit('documents.updated', {
+        documentId,
+        status: finalStatus,
       });
     }
   }

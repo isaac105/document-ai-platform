@@ -64,6 +64,63 @@
         font: inherit;
       }
 
+      .file-input-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .file-drop {
+        border: 1px dashed #cbd5f5;
+        border-radius: 16px;
+        padding: 20px;
+        background: linear-gradient(135deg, #eef2ff, #f8fafc);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        transition: border 0.2s ease, background 0.2s ease;
+      }
+
+      .file-drop:hover {
+        border-color: #818cf8;
+        background: linear-gradient(135deg, #e0e7ff, #f5f7ff);
+      }
+
+      .file-drop .file-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(99, 102, 241, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #4f46e5;
+      }
+
+      .file-drop-content {
+        flex: 1;
+      }
+
+      .file-drop button {
+        background: #4f46e5;
+        color: #fff;
+        border-radius: 999px;
+        padding: 8px 18px;
+        border: none;
+      }
+
+      .file-name {
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .file-hint {
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+
       input[type='text'],
       textarea,
       select {
@@ -187,10 +244,40 @@
       }
 
       .upload-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
         margin-bottom: 16px;
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .meta-field {
+        flex: 1;
+        min-width: 220px;
+        background: linear-gradient(135deg, #f8fafc, #ffffff);
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .meta-field span {
+        font-size: 0.9rem;
+        color: #475467;
+      }
+
+      .meta-field input {
+        flex: 1;
+        border-radius: 12px;
+        border: 1px solid #d0d5dd;
+        padding: 10px 12px;
       }
 
       @media (max-width: 600px) {
@@ -220,18 +307,30 @@
         </div>
         <form id="uploadForm">
           <div class="upload-grid">
-            <label>
-              <span>문서 파일</span><br />
-              <input type="file" id="fileInput" required />
-            </label>
-            <label>
-              <span>팀명 (선택)</span><br />
-              <input type="text" id="teamInput" placeholder="예: platform" />
-            </label>
-            <label>
-              <span>업로더 (선택)</span><br />
-              <input type="text" id="uploadedByInput" placeholder="예: jina" />
-            </label>
+            <div class="file-input-wrapper">
+              <input type="file" id="fileInput" hidden accept=".pdf,.doc,.docx,.txt" required />
+              <label class="file-drop" for="fileInput">
+                <div class="file-icon">📄</div>
+                <div class="file-drop-content">
+                  <div class="file-name" id="fileNameDisplay">
+                    파일을 선택하세요
+                  </div>
+                  <div class="file-hint">
+                    지원 확장자: PDF, DOC, DOCX, TXT (최대 10MB)
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div class="meta-row">
+              <label class="meta-field">
+                <span>팀명 (선택)</span>
+                <input type="text" id="teamInput" placeholder="예: platform" />
+              </label>
+              <label class="meta-field">
+                <span>업로더 (선택)</span>
+                <input type="text" id="uploadedByInput" placeholder="예: jina" />
+              </label>
+            </div>
           </div>
           <button class="primary" type="submit">문서 업로드</button>
           <p id="uploadStatus" class="muted"></p>
@@ -277,6 +376,13 @@
       const questionForm = document.getElementById('questionForm');
       const questionStatus = document.getElementById('questionStatus');
       const answerBox = document.getElementById('answerBox');
+      const fileInput = document.getElementById('fileInput');
+      const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        fileNameDisplay.textContent = file ? file.name : '파일을 선택하세요';
+      });
 
       async function fetchDocuments() {
         documentsList.innerHTML = '<p class="muted">불러오는 중...</p>';
@@ -322,8 +428,7 @@
           if (!res.ok) {
             throw new Error(await res.text());
           }
-          uploadStatus.textContent = '업로드 완료! 문서가 처리 대기 중입니다.';
-          uploadForm.reset();
+          uploadStatus.textContent = '업로드 완료! 현재 서버에서 처리중입니다. 잠시만 기다려주세요.';
           fetchDocuments();
         } catch (error) {
           uploadStatus.textContent = `업로드 실패: ${error.message}`;
@@ -331,6 +436,15 @@
       });
 
       refreshDocsBtn.addEventListener('click', fetchDocuments);
+
+      const documentsEvents = new EventSource('/documents/events/stream');
+      documentsEvents.onmessage = () => {
+        fetchDocuments();
+        uploadStatus.textContent = '';
+      };
+      documentsEvents.onerror = () => {
+        console.warn('문서 이벤트 스트림이 끊어졌습니다. 잠시 후 다시 시도됩니다.');
+      };
 
       questionForm.addEventListener('submit', async (event) => {
         event.preventDefault();
