@@ -36,11 +36,12 @@ export class DocumentChunk {
 
   // pgvector를 위한 임베딩 컬럼
   @Column({
-    type: 'vector',
-    length: 1536, // .env의 VECTOR_DIMENSION과 일치
+    type: 'jsonb',
+    nullable: false,
+    default: () => "'[]'::jsonb",
   })
   @Index('document_chunks_embedding_idx', { synchronize: false })
-  embedding: string; // pgvector 타입
+  embedding: number[];
 
   @CreateDateColumn()
   createdAt: Date;
