@@ -11,7 +11,10 @@ export default registerAs(
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: process.env.NODE_ENV === 'development', // 프로덕션에서는 false
+    synchronize: process.env.NODE_ENV === 'development',
     logging: process.env.NODE_ENV === 'development',
+    extra: {
+      options: '-c timezone=Asia/Seoul',
+    },
   }),
 );
