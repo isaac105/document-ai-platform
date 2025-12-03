@@ -1,98 +1,101 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<h1 align="center">사내 문서 정리 AI 플랫폼</h1>
+<p align="center">PDF / Word / TXT 등 내부 문서를 업로드하고, 청킹 & 벡터 임베딩 후 LLM으로 질의응답을 제공하는 NestJS 백엔드입니다.</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+---
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 아키텍처 개요
 
-## Description
+- **모듈 구조**
+  - `DocumentsModule`: 업로드, 파싱, 청킹, 이벤트 기반 처리
+  - `LlmModule`: FactChat(or fallback) LLM 연동
+  - `QueriesModule`: 문서 검색 및 QA API
+  - `CommonModule`: 전역 필터 · 파이프 등 공통 컴포넌트
+- **흐름**
+  1. 사용자가 `/documents/upload` 로 파일 업로드
+  2. `DocumentUploadedEvent` 발행 → `ProcessDocumentHandler`
+  3. 파싱 + 청킹 + 임베딩 + 요약 생성
+  4. `/qa/ask` 에서 최신 문서를 기반으로 LLM 질의응답
+- **기술 스택**
+  - NestJS 11, TypeORM, PostgreSQL/pgvector, pdf-parse v2, Mammoth
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 데이터 모델링
 
-## Project setup
+| 엔티티 | 주요 필드 | 설명 |
+| --- | --- | --- |
+| `Document` | `status(enum)`, `team`, `uploadedBy`, `summary` | 업로드된 원본 메타데이터와 처리 상태 |
+| `DocumentChunk` | `chunkIndex`, `startPosition`, `embedding(jsonb)` | 청킹된 본문 조각 및 임베딩 |
+
+- `DocumentStatus` 열거형(`pending`, `processing`, `completed`, `failed`)으로 상태를 일관성 있게 관리합니다.
+- `jsonb` 임베딩 저장 → DB 이식성 및 디버깅 편의 향상.
+- `team`, `uploadedBy`, `status` 컬럼에 인덱스가 걸려 있어 필터링 성능이 안정적입니다.
+
+## API 설계
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/documents/upload` | 파일 업로드 (team, uploadedBy 메타데이터 포함) |
+| `GET` | `/documents` | 팀/상태/페이지네이션 기반 문서 목록 |
+| `GET` | `/documents/:id` | 단일 문서 정보 |
+| `GET` | `/documents/:id/content` | 파싱된 본문 조회 |
+| `POST` | `/qa/ask` | 최신 완료 문서를 컨텍스트로 LLM 답변 |
+
+- 모든 DTO는 `class-validator` + Global `ValidationPipe` 로 검증됩니다.
+- QA 응답에는 참고된 문서 리스트가 포함되어 감사 추적이 가능합니다.
+
+## 에러 처리 & 보안
+
+- 전역 `ValidationPipe` (whitelist + transform)로 입력 검증.
+- `AllExceptionsFilter` 로 모든 예외를 표준 JSON 형식으로 반환하고 로깅.
+- CORS 허용 도메인을 `.env` (`CORS_ORIGIN`) 로 제어.
+- 파일 업로드 시 MIME/확장자/사이즈 점검 후 안전한 경로(`uploads/`)에 저장.
+- LLM 오류 시 개발 환경에서 폴백 응답/임베딩을 제공하여 안정적인 테스트가 가능.
+
+## 환경 변수
+
+`src/config/env.validation.ts` 에서 검증합니다.
+
+| Key | Description |
+| --- | --- |
+| `NODE_ENV`, `PORT` | 기본 서버 설정 |
+| `DB_*` | PostgreSQL 연결 정보 |
+| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | 챗 모델 |
+| `LLM_CHAT_PATH`, `LLM_EMBEDDING_PATH`, `LLM_EMBEDDING_MODEL` | FactChat API 경로 |
+| `UPLOAD_PATH`, `MAX_FILE_SIZE` | 파일 저장 경로/용량 |
+| `CORS_ORIGIN` | 허용 오리진(콤마 구분) |
+
+## 실행 방법
 
 ```bash
-$ npm install
+docker compose -f docker/docker-db-compose.yaml up -d
+
+npm install
+npm run start:dev
+# 또는
+npm run start:prod
 ```
 
-## Compile and run the project
+정적 프론트엔드는 `public/index.html` 로 서빙되며, 서버 기동 후 `http://localhost:<PORT>/` 에서 바로 접근할 수 있습니다.
+
+## 테스트
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run lint     # ESLint / Prettier
+npm run build    # 타입 검증
+npm run test     # 단위 테스트
 ```
 
-## Run tests
+## 주요 폴더 구조
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+src/
+ ├─ app.module.ts
+ ├─ common/
+ │   └─ filters/all-exceptions.filter.ts
+ ├─ config/
+ │   ├─ env.validation.ts
+ │   └─ database.config.ts
+ ├─ documents/   # 업로드/파싱/청킹/쿼리
+ ├─ llm/         # FactChat provider + service
+ ├─ queries/     # QA API
+ └─ main.ts      # 부트스트랩 + 전역 파이프/필터
 ```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
