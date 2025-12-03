@@ -1,15 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import * as mammoth from 'mammoth';
 import * as path from 'path';
 
 @Injectable()
 export class DocumentParserService {
   private readonly logger = new Logger(DocumentParserService.name);
-  private readonly parsePdfFn = pdfParse as unknown as (
-    dataBuffer: Buffer,
-  ) => Promise<{ text: string }>;
 
   async parseFile(filePath: string, mimeType: string): Promise<string> {
     this.logger.log(`Parsing file: ${filePath} (${mimeType})`);
@@ -37,8 +34,16 @@ export class DocumentParserService {
 
   private async parsePdf(filePath: string): Promise<string> {
     const dataBuffer = await fs.readFile(filePath);
-    const data = await this.parsePdfFn(dataBuffer);
-    return this.cleanText(data.text);
+    const parser = new PDFParse({ data: dataBuffer });
+
+    try {
+      const data = await parser.getText();
+      return this.cleanText(data.text);
+    } finally {
+      await parser.destroy().catch((error) =>
+        this.logger.warn(`Failed to destroy PDF parser instance: ${error}`),
+      );
+    }
   }
 
   private async parseDocx(filePath: string): Promise<string> {
