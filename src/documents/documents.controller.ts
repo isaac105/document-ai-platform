@@ -48,6 +48,9 @@ export class DocumentsController {
       );
     }
 
+    // 한글 깨짐 해결
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
+
     // 파일 타입 검증
     if (!this.parserService.isValidFileType(file.mimetype, file.originalname)) {
       throw new BadRequestException(
