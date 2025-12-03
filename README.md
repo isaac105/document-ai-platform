@@ -41,6 +41,7 @@
 
 - 모든 DTO는 `class-validator` + Global `ValidationPipe` 로 검증됩니다.
 - QA 응답에는 참고된 문서 리스트가 포함되어 감사 추적이 가능합니다.
+- LLM 의 경우 학교에서 제공되는 `FactChat` 을 기반으로 구성하였습니다.
 
 ## 에러 처리 & 보안
 
@@ -66,14 +67,15 @@
 ## 실행 방법
 
 ```bash
-docker compose -f docker/docker-db-compose.yaml up -d
+# 도커로 전부 실행할 경우
+docker compose up --build
 
+# Postgres / Node 가 로컬에 세팅 되어있을 경우
 npm install
-npm run start:dev
-# 또는
-npm run start:prod
+npm run start:dev || npm run start:prod
 ```
 
+해당 프로젝트는 도커라이징이 되어 있어 컴포즈로 한번에 실행 가능합니다.
 정적 프론트엔드는 `public/index.html` 로 서빙되며, 서버 기동 후 `http://localhost:<PORT>/` 에서 바로 접근할 수 있습니다.
 
 ## 테스트

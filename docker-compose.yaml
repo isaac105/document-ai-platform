@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: dap-db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - dap_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dap
+
+  api:
+    depends_on:
+      - db
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: dap-api
+    environment:
+      TZ: Asia/Seoul
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_CHAT_PATH: ${LLM_CHAT_PATH}
+      LLM_EMBEDDING_PATH: ${LLM_EMBEDDING_PATH}
+      LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL}
+      UPLOAD_PATH: /usr/src/app/uploads
+      MAX_FILE_SIZE: 10485760
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../uploads:/usr/src/app/uploads
+    networks:
+      - dap
+
+networks:
+  dap:
+    driver: bridge
+
+volumes:
+  dap_db_data:
