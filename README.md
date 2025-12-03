@@ -59,7 +59,7 @@
 | --- | --- |
 | `NODE_ENV`, `PORT` | 기본 서버 설정 |
 | `DB_*` | PostgreSQL 연결 정보 |
-| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | 챗 모델 |
+| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | FactChat 연결 정보|
 | `LLM_CHAT_PATH`, `LLM_EMBEDDING_PATH`, `LLM_EMBEDDING_MODEL` | FactChat API 경로 |
 | `UPLOAD_PATH`, `MAX_FILE_SIZE` | 파일 저장 경로/용량 |
 | `CORS_ORIGIN` | 허용 오리진(콤마 구분) |
@@ -67,6 +67,8 @@
 ## 실행 방법
 
 ```bash
+vi .env
+
 # 도커로 전부 실행할 경우
 docker compose up --build
 
@@ -75,8 +77,8 @@ npm install
 npm run start:dev || npm run start:prod
 ```
 
-해당 프로젝트는 도커라이징이 되어 있어 컴포즈로 한번에 실행 가능합니다.
-정적 프론트엔드는 `public/index.html` 로 서빙되며, 서버 기동 후 `http://localhost:<PORT>/` 에서 바로 접근할 수 있습니다.
+<ins>해당 프로젝트는 도커라이징이 되어 있어 컴포즈로 한번에 일괄 실행 가능합니다.</ins><br>
+정적 프론트엔드는 `public/index.html` 로 서빙되며, 서버 기동 후 `http://localhost:<PORT>/` 에서 접근할 수 있습니다.
 
 ## 테스트
 
