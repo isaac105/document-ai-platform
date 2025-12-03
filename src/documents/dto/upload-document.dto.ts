@@ -1,10 +1,6 @@
-import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class UploadDocumentDto {
-  @IsNotEmpty()
-  @IsString()
-  filename: string;
-
   @IsOptional()
   @IsString()
   team?: string;

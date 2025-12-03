@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import databaseConfig from './config/database.config';
+import { validate } from './config/env.validation';
 
 // 생성한 모듈들
 import { DocumentsModule } from './documents/documents.module';
@@ -10,6 +11,7 @@ import { QueriesModule } from './queries/queries.module';
 import { VectorstoreModule } from './vectorstore/vectorstore.module';
 import { LlmModule } from './llm/llm.module';
 import { FaviconController } from './common/controllers/favicon.controller';
+import { WellKnownController } from './app.controller';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { FaviconController } from './common/controllers/favicon.controller';
       isGlobal: true,
       load: [databaseConfig],
       envFilePath: '.env',
+      validate,
     }),
     EventEmitterModule.forRoot(),
 
@@ -35,6 +38,6 @@ import { FaviconController } from './common/controllers/favicon.controller';
     VectorstoreModule,
     LlmModule,
   ],
-  controllers: [FaviconController],
+  controllers: [FaviconController, WellKnownController],
 })
 export class AppModule {}

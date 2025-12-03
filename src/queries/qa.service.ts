@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { Document } from '../documents/entities/document.entity';
+import {
+  Document,
+  DocumentStatus,
+} from '../documents/entities/document.entity';
 import { LlmService } from '../llm/llm.service';
 
 @Injectable()
@@ -47,7 +50,7 @@ export class QaService {
       this.documentRepository.createQueryBuilder('document');
 
     query = query
-      .where('document.status = :status', { status: 'completed' })
+      .where('document.status = :status', { status: DocumentStatus.COMPLETED })
       .orderBy('document.updatedAt', 'DESC')
       .take(3);
 

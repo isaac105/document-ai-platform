@@ -9,6 +9,7 @@ import {
   Body,
   Query,
   ParseUUIDPipe,
+  NotFoundException,
   Sse,
   MessageEvent,
 } from '@nestjs/common';
@@ -21,6 +22,8 @@ import { GetDocumentsQuery } from './queries/impl/get-documents.query';
 import { DocumentResponseDto } from './dto/document-response.dto';
 import { DocumentParserService } from './services/document-parser.service';
 import { ConfigService } from '@nestjs/config';
+import { DocumentFiltersDto } from './dto/document-filters.dto';
+import { UploadDocumentDto } from './dto/upload-document.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Observable } from 'rxjs';
 
@@ -38,8 +41,7 @@ export class DocumentsController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(
     @UploadedFile() file: Express.Multer.File,
-    @Body('team') team?: string,
-    @Body('uploadedBy') uploadedBy?: string,
+    @Body() metadata?: UploadDocumentDto,
   ): Promise<DocumentResponseDto> {
     // 파일 존재 여부 확인
     if (!file) {
@@ -66,7 +68,7 @@ export class DocumentsController {
 
     // Command 실행
     const document = await this.commandBus.execute(
-      new UploadDocumentCommand(file, team, uploadedBy),
+      new UploadDocumentCommand(file, metadata?.team, metadata?.uploadedBy),
     );
 
     return DocumentResponseDto.fromEntity(document);
@@ -74,16 +76,14 @@ export class DocumentsController {
 
   @Get()
   async getDocuments(
-    @Query('team') team?: string,
-    @Query('status') status?: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query() filters: DocumentFiltersDto,
   ): Promise<{
     data: DocumentResponseDto[];
     total: number;
     page: number;
     limit: number;
   }> {
+    const { team, status, page, limit } = filters;
     const result = await this.queryBus.execute(
       new GetDocumentsQuery(team, status, page, limit),
     );
@@ -103,7 +103,7 @@ export class DocumentsController {
     const document = await this.queryBus.execute(new GetDocumentQuery(id));
 
     if (!document) {
-      throw new BadRequestException('Document not found');
+      throw new NotFoundException('Document not found');
     }
 
     return DocumentResponseDto.fromEntity(document);
@@ -116,7 +116,7 @@ export class DocumentsController {
     const document = await this.queryBus.execute(new GetDocumentQuery(id));
 
     if (!document) {
-      throw new BadRequestException('Document not found');
+      throw new NotFoundException('Document not found');
     }
 
     return { content: document.content };
