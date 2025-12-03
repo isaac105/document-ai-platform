@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProcessDocumentCommand } from '../impl/process-document.command';
-import { Document } from '../../entities/document.entity';
+import { Document, DocumentStatus } from '../../entities/document.entity';
 import { DocumentChunk } from '../../entities/document-chunk.entity';
 import { Logger } from '@nestjs/common';
 import { DocumentProcessingService } from '../../services/document-processing.service';
@@ -35,7 +35,7 @@ export class ProcessDocumentHandler
       }
 
       // 상태 업데이트
-      document.status = 'processing';
+      document.status = DocumentStatus.PROCESSING;
       await this.documentRepository.save(document);
 
       // 1. 파일 파싱
@@ -64,7 +64,7 @@ export class ProcessDocumentHandler
           chunkIndex: chunk.chunkIndex,
           startPosition: chunk.startPosition,
           endPosition: chunk.endPosition,
-          embedding: JSON.stringify(chunk.embedding),
+          embedding: chunk.embedding,
         }),
       );
 
@@ -78,7 +78,7 @@ export class ProcessDocumentHandler
       document.summary = summary;
 
       // 5. 완료 상태로 업데이트
-      document.status = 'completed';
+      document.status = DocumentStatus.COMPLETED;
       await this.documentRepository.save(document);
 
       this.logger.log(`Document processing completed: ${document.filename}`);
@@ -90,7 +90,7 @@ export class ProcessDocumentHandler
 
       // 실패 상태로 업데이트
       await this.documentRepository.update(documentId, {
-        status: 'failed',
+        status: DocumentStatus.FAILED,
       });
     }
   }

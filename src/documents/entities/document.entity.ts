@@ -7,6 +7,13 @@ import {
   Index,
 } from 'typeorm';
 
+export enum DocumentStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
 @Entity('documents')
 export class Document {
   @PrimaryGeneratedColumn('uuid')
@@ -33,14 +40,20 @@ export class Document {
   @Column({ type: 'text', nullable: true })
   summary: string; // AI가 생성한 요약
 
-  @Column({ default: 'pending' })
+  @Column({
+    type: 'enum',
+    enum: DocumentStatus,
+    default: DocumentStatus.PENDING,
+  })
   @Index()
-  status: string; // pending, processing, completed, failed
+  status: DocumentStatus;
 
   @Column({ nullable: true })
+  @Index()
   uploadedBy: string; // 업로드한 사용자 (추후 인증 구현 시 사용)
 
   @Column({ nullable: true })
+  @Index()
   team: string; // 팀 정보
 
   @CreateDateColumn()

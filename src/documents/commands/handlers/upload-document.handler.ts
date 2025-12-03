@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadDocumentCommand } from '../impl/upload-document.command';
-import { Document } from '../../entities/document.entity';
+import { Document, DocumentStatus } from '../../entities/document.entity';
 import { DocumentUploadedEvent } from '../../events/impl/document-uploaded.event';
 import { ConfigService } from '@nestjs/config';
 import { DocumentStorageService } from '../../services/document-storage.service';
@@ -33,7 +33,7 @@ export class UploadDocumentHandler
       fileSize: file.size,
       filePath,
       content: '', // 아직 파싱 전
-      status: 'pending',
+      status: DocumentStatus.PENDING,
       team,
       uploadedBy,
     });
