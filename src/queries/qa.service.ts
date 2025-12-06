@@ -32,7 +32,14 @@ export class QaService {
             }\n내용: ${contentPreview}`;
           })
           .join('\n---\n')
-      : '참조 가능한 문서가 없습니다.';
+      : null;
+
+    if (!context) {
+      return {
+        answer: '참조 가능한 문서가 없습니다.',
+        sources: documents,
+      };
+    }
 
     const answer = await this.llmService.answerQuestion(
       question,

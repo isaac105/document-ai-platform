@@ -324,11 +324,19 @@
             <div class="meta-row">
               <label class="meta-field">
                 <span>팀명 (선택)</span>
-                <input type="text" id="teamInput" placeholder="예: platform" />
+                <select id="teamInput">
+                  <option value="">전체</option>
+                  <option value="경영지원팀">경영지원팀</option>
+                  <option value="개발팀">개발팀</option>
+                  <option value="기획팀">기획팀</option>
+                  <option value="디자인팀">디자인팀</option>
+                  <option value="영업팀">영업팀</option>
+                  <option value="인사팀">인사팀</option>
+                </select>
               </label>
               <label class="meta-field">
                 <span>업로더 (선택)</span>
-                <input type="text" id="uploadedByInput" placeholder="예: jina" />
+                <input type="text" id="uploadedByInput" placeholder="예: 익명" />
               </label>
             </div>
           </div>
@@ -353,7 +361,15 @@
         <form id="questionForm">
           <label>
             <span>팀 필터 (선택)</span><br />
-            <input type="text" id="questionTeam" placeholder="예: platform" />
+            <select id="questionTeam">
+              <option value="">전체</option>
+              <option value="경영지원팀">경영지원팀</option>
+              <option value="개발팀">개발팀</option>
+              <option value="기획팀">기획팀</option>
+              <option value="디자인팀">디자인팀</option>
+              <option value="영업팀">영업팀</option>
+              <option value="인사팀">인사팀</option>
+            </select>
           </label>
           <label>
             <span>질문</span><br />
@@ -398,6 +414,9 @@
           <div class="document-card">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <h3>${doc.originalName}</h3>
+              <span style="font-size:12px; color:#888;">
+                업로더: ${doc.team ? `${doc.team}/${doc.uploadedBy}` : '익명'}
+              </span>
               <span class="badge status-${doc.status}">${doc.status}</span>
             </div>
             <p class="muted">${(doc.fileSize / 1024).toFixed(1)} KB • ${new Date(doc.updatedAt).toLocaleString()}</p>
@@ -414,8 +433,8 @@
         if (!file) return;
         const formData = new FormData();
         formData.append('file', file);
-        const team = document.getElementById('teamInput').value;
-        const uploadedBy = document.getElementById('uploadedByInput').value;
+        const team = document.getElementById('teamInput').value || null;
+        const uploadedBy = document.getElementById('uploadedByInput').value || '익명';
         if (team) formData.append('team', team);
         if (uploadedBy) formData.append('uploadedBy', uploadedBy);
 
@@ -450,7 +469,7 @@
         event.preventDefault();
         const question = document.getElementById('questionInput').value.trim();
         if (!question) return;
-        const team = document.getElementById('questionTeam').value.trim();
+        const team = document.getElementById('questionTeam').value.trim() || null;
 
         questionStatus.textContent = '답변 생성 중...';
         answerBox.textContent = '';
