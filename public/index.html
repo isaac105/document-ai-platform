@@ -233,6 +233,52 @@
         border-color: #93c5fd;
       }
 
+      .filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
+      .filter-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1.5px solid #cbd5e1;
+        background: #fff;
+        color: #475467;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .filter-btn:hover {
+        border-color: #818cf8;
+        color: #6366f1;
+        background: linear-gradient(135deg, #eef2ff, #f8fafc);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(99, 102, 241, 0.15);
+      }
+
+      .filter-btn.active {
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        color: #fff;
+        border-color: #6366f1;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        font-weight: 600;
+      }
+
+      .filter-btn.active:hover {
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+      }
+
       .answer-box {
         min-height: 150px;
         white-space: pre-line;
@@ -350,6 +396,15 @@
           <h2>2. 문서 목록</h2>
           <button class="secondary" id="refreshDocs">새로고침</button>
         </div>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-team="">전체</button>
+          <button class="filter-btn" data-team="경영지원팀">경영지원팀</button>
+          <button class="filter-btn" data-team="개발팀">개발팀</button>
+          <button class="filter-btn" data-team="기획팀">기획팀</button>
+          <button class="filter-btn" data-team="디자인팀">디자인팀</button>
+          <button class="filter-btn" data-team="영업팀">영업팀</button>
+          <button class="filter-btn" data-team="인사팀">인사팀</button>
+        </div>
         <div id="documentsList" class="documents-list"></div>
       </section>
 
@@ -395,20 +450,37 @@
       const fileInput = document.getElementById('fileInput');
       const fileNameDisplay = document.getElementById('fileNameDisplay');
 
+      let allDocuments = [];
+      let currentTeamFilter = '';
+
       fileInput.addEventListener('change', () => {
         const file = fileInput.files[0];
         fileNameDisplay.textContent = file ? file.name : '파일을 선택하세요';
       });
 
-      async function fetchDocuments() {
-        documentsList.innerHTML = '<p class="muted">불러오는 중...</p>';
-        const res = await fetch('/documents');
-        const data = await res.json();
-        if (!data.data?.length) {
-          documentsList.innerHTML = '<p class="muted">아직 업로드된 문서가 없습니다.</p>';
+      // 필터 버튼 이벤트 리스너
+      document.querySelectorAll('.filter-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTeamFilter = btn.dataset.team || '';
+          renderDocuments();
+        });
+      });
+
+      function renderDocuments() {
+        const filtered = currentTeamFilter
+          ? allDocuments.filter((doc) => doc.team === currentTeamFilter)
+          : allDocuments;
+
+        if (!filtered.length) {
+          documentsList.innerHTML = `<p class="muted">${
+            currentTeamFilter ? `아직 ${currentTeamFilter}에서 업로드된 문서가 없습니다.` : '아직 업로드된 문서가 없습니다.'
+          }</p>`;
           return;
         }
-        documentsList.innerHTML = data.data
+
+        documentsList.innerHTML = filtered
           .map(
             (doc) => `
           <div class="document-card">
@@ -425,6 +497,14 @@
         `,
           )
           .join('');
+      }
+
+      async function fetchDocuments() {
+        documentsList.innerHTML = '<p class="muted">불러오는 중...</p>';
+        const res = await fetch('/documents');
+        const data = await res.json();
+        allDocuments = data.data || [];
+        renderDocuments();
       }
 
       uploadForm.addEventListener('submit', async (event) => {
