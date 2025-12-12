@@ -3,6 +3,10 @@
 
 ---
 
+<p align="center">
+  <img width="743" height="917" alt="Image" src="https://github.com/user-attachments/assets/a5ed64a9-9444-4c6c-8018-56e32ea8ecb0" />
+</p>
+
 ## 아키텍처 개요
 
 - **모듈 구조**
@@ -14,7 +18,7 @@
   1. 사용자가 `/documents/upload` 로 파일 업로드
   2. `DocumentUploadedEvent` 발행 → `ProcessDocumentHandler`
   3. 파싱 + 청킹 + 임베딩 + 요약 생성
-  4. `/qa/ask` 에서 최신 문서를 기반으로 LLM 질의응답
+  4. `/qa/ask` 에서 최신 문서를 기반으로 `FactChat` LLM 질의응답
 - **기술 스택**
   - NestJS 11, TypeORM, PostgreSQL/pgvector, pdf-parse v2, Mammoth
 
@@ -25,6 +29,7 @@
 | `Document` | `status(enum)`, `team`, `uploadedBy`, `summary` | 업로드된 원본 메타데이터와 처리 상태 |
 | `DocumentChunk` | `chunkIndex`, `startPosition`, `embedding(jsonb)` | 청킹된 본문 조각 및 임베딩 |
 
+- 이 프로젝트는 소규모로 기획된 것으로 확장은 고려하고 있지 않아 테이블 또한 단순하게 구현했습니다.
 - `DocumentStatus` 열거형(`pending`, `processing`, `completed`, `failed`)으로 상태를 일관성 있게 관리합니다.
 - `jsonb` 임베딩 저장 → DB 이식성 및 디버깅 편의 향상.
 - `team`, `uploadedBy`, `status` 컬럼에 인덱스가 걸려 있어 필터링 성능이 안정적입니다.
