@@ -82,7 +82,7 @@ npm install
 npm run start:dev || npm run start:prod
 ```
 
-<ins>해당 프로젝트는 도커라이징이 되어 있어 컴포즈로 한번에 일괄 실행 가능합니다.</ins><br>
+<ins>해당 프로젝트는 도커라이징이 되어 있어, env 구성 후 컴포즈로 한번에 일괄 실행 가능합니다.</ins><br>
 정적 프론트엔드는 `public/index.html` 로 서빙되며, 서버 기동 후 `http://localhost:<PORT>/` 에서 접근할 수 있습니다.
 
 ## 테스트
